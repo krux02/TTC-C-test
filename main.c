@@ -3,27 +3,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <memory.h>
+#include <assert.h>
 
 int main() {
   printf("hello world\n");
 
   // Create handler
   ttc_handler_s *ttc_handle = ttc_init();
-  int res;
+  int err;
+
+  // Set TTC options
+  int maxImplemenations = 10;
+  err = ttc_set_opt( ttc_handle, TTC_OPT_MAX_IMPL,    (void*)&maxImplemenations, 1 );
+  assert(err == 0);
+  int numThreads = 24;
+  err = ttc_set_opt( ttc_handle, TTC_OPT_NUM_THREADS, (void*)&numThreads, 13 );
+  assert(err == 0);
+  char affinity[] = "compact,1";
+  err = ttc_set_opt( ttc_handle, TTC_OPT_AFFINITY,    (void*)affinity, strlen(affinity) );
+  assert(err == 0);
 
   // Create transpose parameter
   uint32_t    perm[] = { 1, 2, 0 };
   uint32_t    size[] = { 2, 3, 4 };
-  ttc_param_s param = { .alpha.s = 1.0f, .beta.s = 1.0f, .lda = NULL, .ldb = NULL, .perm = perm, .size = size, .loop_perm = NULL, .dim = 3};
+  ttc_param_s param = { .alpha.d = 1.0, .beta.d = 0.0, .lda = NULL, .ldb = NULL, .datatype = TTC_TYPE_D, .perm = perm, .size = size, .loop_perm = NULL, .dim = 3 };
 
-  // Set TTC options (THIS IS OPTIONAL)
-  int maxImplemenations = 10;
-  ttc_set_opt( ttc_handle, TTC_OPT_MAX_IMPL,    (void*)&maxImplemenations, 1 );
-  int numThreads = 24;
-  ttc_set_opt( ttc_handle, TTC_OPT_NUM_THREADS, (void*)&numThreads, 1 );
-  char affinity[] = "compact,1";
-  ttc_set_opt( ttc_handle, TTC_OPT_AFFINITY,    (void*)affinity, strlen(affinity) );
-
+  
   // Allocating memory for tensors
   int i;
   int N = 2*3*4;
@@ -47,11 +52,11 @@ int main() {
     A[i] = (double)i;
   }
 
-  res = ttc_transpose( ttc_handle, &param, A, B);
+  err = ttc_transpose( ttc_handle, &param, A, B);
 
   // Execute transpose
-  if (0 != res) {
-    fprintf(stderr, "could not do transpose\n");
+  if (0 != err) {
+    fprintf(stderr, "could not do transpose, err=%d\n", err);
     exit(EXIT_FAILURE);
   }
 
@@ -63,3 +68,4 @@ int main() {
 
   printf("end world\n");
 }
+
